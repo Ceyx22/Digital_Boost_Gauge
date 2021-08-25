@@ -174,11 +174,11 @@ void loop() {  // Put your main code here, to run repeatedly:
 
   sensorValue = analogRead(sensorPin);  // Read analog pin where the potentiometer is connected
   RealRPM = map (sensorValue, 0, 1023, 0, 8000);  // Remap pot to simulate an RPM value
-  RealRPM = constrain(RealRPM, 0, 30);  // Constrain the value so it doesn't go below or above the limits
+  RealRPM = constrain(RealRPM, 0, 8000);  // Constrain the value so it doesn't go below or above the limits
 
 
-  int TachometerRemapedWithoutSmoothing = map (RealRPM, -30, 30, 0, 90);  // Remap the raw RPM to match the tachometer value range
-  TachometerRemapedWithoutSmoothing = constrain(TachometerRemapedWithoutSmoothing, 0, 208);  // Constrain the value so it doesn't go below or above the limits
+  int TachometerRemapedWithoutSmoothing = map (RealRPM, 0, 8000, 0, 90);  // Remap the raw RPM to match the tachometer value range
+  TachometerRemapedWithoutSmoothing = constrain(TachometerRemapedWithoutSmoothing, 0, 90);  // Constrain the value so it doesn't go below or above the limits
 
 
 
@@ -212,8 +212,8 @@ void loop() {  // Put your main code here, to run repeatedly:
 
 
   
-  TachometerRemaped = map (average, -30, 30, 0, 90);  // Remap the smoothed RPM to match the tachometer value range
-  TachometerRemaped = constrain(TachometerRemaped, 0, 90);  // Constrain the value so it doesn't go below or above the limits
+  TachometerRemaped = map (average, 0, 8000, 0, 90);  // Remap the smoothed RPM to match the tachometer value range
+  TachometerRemaped = constrain(TachometerRemaped, 0, 91);  // Constrain the value so it doesn't go below or above the limits
 
              
 
@@ -247,11 +247,11 @@ void loop() {  // Put your main code here, to run repeatedly:
 
 
   // Max limit:
-  if (TachometerRemaped == 208)  // if tachometer is 208 (the maximun limit)
+  if (TachometerRemaped == 91)  // if tachometer is 208 (the maximun limit)
   {
     if(TachLimitCounter2 == TachLimitAmount)  // if we wait long enough and still is 208
     {
-      TachometerWithDeadzone = 208;  // show real tach as 208
+      TachometerWithDeadzone = 91;  // show real tach as 208
     }
     else  // since we didn't wait long enough if tachometer it's still 208
     {
