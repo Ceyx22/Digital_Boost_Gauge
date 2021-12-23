@@ -1,6 +1,10 @@
 /*
-This sketch shows how to use my tachometer made for the Nextion display.
-I am not going to use any library to send data to the display.
+Nextion library: https://github.com/itead/ITEADLIB_Arduino_Nextion
+This sketch was based off of InterlinkKnight using https://www.youtube.com/watch?v=wIWxSLVAAQE
+This sketch is made to take information from HMI scrpipt and animate it into the screen
+This script is intergrated with the preasure sensor will move to CANBUS for next version
+
+Test Vesion for actual product have will add more before reaslesing
 
 Connection with Arduino Uno/Nano:
 * +5V = 5V
@@ -8,55 +12,31 @@ Connection with Arduino Uno/Nano:
 * RX  = pin 1 (TX)
 * GND = GND
 
-If you are going to use an Arduino Mega, you have to edit everything on this sketch that says "Serial"
-and replace it with "Serial1" (or whatever number you are using).
+Made by Fernando Matias
+Last update: 06/22/2021
 
-
-Nextion library: https://github.com/itead/ITEADLIB_Arduino_Nextion
-
-
-This sketch was made for my 4th video tutorial shown here: https://www.youtube.com/watch?v=eDn7LFyoEm8
-
-Made by InterlinkKnight
-Last update: 02/22/2018
+*Things to adresss/fix
+One flaw in the current design of this is the current flash memory on screen it is not enough will have to upgrade
+*Next version will have CANBUS intergration for easier connection with car
 */
 
+int TestVariable1 = 0;  // Creating a variable to test
+int TestVariable2 = 0;  // Creating a variable to test
+int TestVariable3 = 0;  // Creating a variable to test
+int TestVariable4 = 0;  // Creating a variable to test
 
-
-int TestVariable1 = 0;  // Create a variable to have something to show as a test
-int TestVariable2 = 0;  // Create a variable to have something to show as a test
-int TestVariable3 = 0;  // Create a variable to have something to show as a test
-int TestVariable4 = 0;  // Create a variable to have something to show as a test
-
-
-
+// A0 was used as the pin input for actual preasure sensor
 int sensorPin = A0;  // Potentiometer pin to simulate an rpm sensor, for testing
 int sensorValue;  // Variable to store the value of potentiometer
 
-
-
-
-
-
-
-
-
-
-
 // Calibration for smoothing RPM:
-const int numReadings = 20;     // number of samples for smoothing. The higher, the more smoothing, but slower to react. Default: 20
+const int numReadings = 20;  // The higher the smoothening the slower the reaction time of the screen Last: 30
 
 // Calibration for tachometer deadzone:
-const int TachometerDeadzoneSamples = 2;  // amount of samples for dead zone (1 would be no dead zone). Default: 2
+const int TachometerDeadzoneSamples = 2;  // Deadzone for Tach (1 = no dead zone). Last: 6
 
 // Calibration for tachometer limit:
-const int TachLimitAmount = 20;  // how many cycles we are going to wait when tach reach limit value, before showing that value. Default: 20
-
-
-
-
-
-
+const int TachLimitAmount = 20;  // wait time until gauge works (cycles of program), Last: 15
 
 // Variables for smoothing tachometer:
 int readings[numReadings];  // the input
@@ -64,25 +44,19 @@ int readIndex = 0;  // the index of the current reading
 long total = 0;  // the running total
 int average = 0;  // the average
 
-// Variables for deadzone for tachometer:
+// Variable of deadzone for tachometer:
 int TachometerWithDeadzone;
 
 // Variables for tachometer limit:
-int TachLimitCounter1 = 0;  // counter to wait for how long we see a limit value for tach, before showing that value
-int TachLimitCounter2 = 0;  // counter to wait for how long we see a limit value for tach, before showing that value
+// Counters for tach limit, before seeing vaules
+int TachLimitCounter1 = 0;
+int TachLimitCounter2 = 0;
 
-// Variable to store the tachometer value after remaped:
+// tachometer values after remaped:
 int TachometerRemaped;
 
 // Variable to store rpm:
 int RealRPM = 0;
-
-
-
-
-
-
-
 
 
 
@@ -91,15 +65,10 @@ void setup() {  // Put your setup code here, to run once:
   Serial.begin(9600);  // Start serial comunication at baud=9600
 
 
-  // I am going to change the Serial baud to a faster rate.
+  // Changing Serial baud to a faster rate.
   delay(500);  // This dalay is just in case the nextion display didn't start yet, to be sure it will receive the following command.
-  Serial.print("baud=115200");  // Set new baud rate of nextion to 115200, but it's temporal. Next time nextion is power on,
-                                // it will retore to default baud of 9600.
-                                // To take effect, make sure to reboot the arduino (reseting arduino is not enough).
-                                // If you want to change the default baud, send the command as "bauds=115200", instead of "baud=115200".
-                                // If you change the default baud, everytime the nextion is power ON is going to have that baud rate, and
-                                // would not be necessery to set the baud on the setup anymore.
-  Serial.write(0xff);  // We always have to send this three lines after each command sent to nextion.
+  Serial.print("baud=115200");  // Set new baud rate of nextion to 115200, but it's temporal. Next time nextion is power on,it will retore to default baud of 9600.
+  Serial.write(0xff);  // Always have to send this three lines after each command for nextion display.
   Serial.write(0xff);
   Serial.write(0xff);
 
@@ -107,21 +76,13 @@ void setup() {  // Put your setup code here, to run once:
 
   Serial.begin(115200);  // Start serial comunication at baud=115200
 
-
-
 }  // End of setup
-
-
 
 
 void loop() {  // Put your main code here, to run repeatedly:
 
-
   delay(20);  // I put this delay because without it, the timer on the display would stop running.
               // Aparently we shouldn't send data to the display too often.
-
-
-
 
   //////////////// Testing variables:
   // The following it's going to change the variables in sequence as a test for the indicators and warning lights:
@@ -162,28 +123,13 @@ void loop() {  // Put your main code here, to run repeatedly:
   //////////////// End of testing variables.
 
 
-
-
-
-
-
-
-
-
-
-
-  sensorValue = analogRead(sensorPin);  // Read analog pin where the potentiometer is connected
+  sensorValue = analogRead(sensorPin);  // Read analog pin where the sensor
   RealRPM = map (sensorValue, 0, 1023, 0, 8000);  // Remap pot to simulate an RPM value
   RealRPM = constrain(RealRPM, 0, 8000);  // Constrain the value so it doesn't go below or above the limits
 
 
-  int TachometerRemapedWithoutSmoothing = map (RealRPM, 0, 8000, 0, 208);  // Remap the raw RPM to match the tachometer value range
-  TachometerRemapedWithoutSmoothing = constrain(TachometerRemapedWithoutSmoothing, 0, 208);  // Constrain the value so it doesn't go below or above the limits
-
-
-
-
-
+  int TachometerRemapedWithoutSmoothing = map (RealRPM, 0, 8000, 0, 90);  // Remap the raw RPM to match the tachometer value range
+  TachometerRemapedWithoutSmoothing = constrain(TachometerRemapedWithoutSmoothing, 0, 90);  // Constrain the value so it doesn't go below or above the limits
 
 
   // Smoothing RPM:
@@ -203,24 +149,8 @@ void loop() {  // Put your main code here, to run repeatedly:
   }
   
   // calculate the average:
-  average = total / numReadings;  // the average value it's the smoothed result
-
-
-
-
-
-
-
-  
-  TachometerRemaped = map (average, 0, 8000, 0, 208);  // Remap the smoothed RPM to match the tachometer value range
-  TachometerRemaped = constrain(TachometerRemaped, 0, 208);  // Constrain the value so it doesn't go below or above the limits
-
-             
-
-
-
-
-
+  average = total / numReadings;  // the average value it's the smoothed resulteterRemaped = map (average, 0, 8000, 0, 90);  // Remap the smoothed RPM to match the tachometer value range
+  TachometerRemaped = constrain(TachometerRemaped, 0, 91);  // Constrain the value so it doesn't go below or above the limits
 
   // Deadzone for tachometer:
   // This is another layer of smoothing the tachometer. It adds some dead zone so it doesn't go back and forward to the same
@@ -247,11 +177,11 @@ void loop() {  // Put your main code here, to run repeatedly:
 
 
   // Max limit:
-  if (TachometerRemaped == 208)  // if tachometer is 208 (the maximun limit)
+  if (TachometerRemaped == 91)  // if tachometer is 208 (the maximun limit)
   {
     if(TachLimitCounter2 == TachLimitAmount)  // if we wait long enough and still is 208
     {
-      TachometerWithDeadzone = 208;  // show real tach as 208
+      TachometerWithDeadzone = 91;  // show real tach as 208
     }
     else  // since we didn't wait long enough if tachometer it's still 208
     {
@@ -262,18 +192,6 @@ void loop() {  // Put your main code here, to run repeatedly:
   {
     TachLimitCounter2 = 0;  // reset counter
   }
-
-
-
-
-
-
-
-
-
-
-
-
 
   // Send tachometer value:
   Serial.print("tach.pic=");  // This is sent to the nextion display to set what object name (before the dot) and what atribute (after the dot) are you going to change.
@@ -287,15 +205,6 @@ void loop() {  // Put your main code here, to run repeatedly:
   Serial.write(0xff);
 
 
-
-
-
-
-
-
-
-
-
   //////////////// Testing indicators:
   // The following it's going to change the indicators and warning lights as a test:
   // Ignore this as it has nothing to do with the tachometer itself.
@@ -307,9 +216,6 @@ void loop() {  // Put your main code here, to run repeatedly:
   Serial.write(0xff);
   Serial.write(0xff);
 
-
-
-  
   // Warning light test mode:
   if(TestVariable2 == 0)
   {
@@ -333,7 +239,6 @@ void loop() {  // Put your main code here, to run repeatedly:
     Serial.write(0xff);
     Serial.write(0xff);
   }
-
 
   if(TestVariable2 == 1)
   {
@@ -503,7 +408,6 @@ void loop() {  // Put your main code here, to run repeatedly:
     Serial.write(0xff);
   }
 
-
   if(TestVariable2 == 8)
   {
     Serial.print("vis check,0");  // This is sent to the nextion display to set what object name (before the dot) and what atribute (after the dot) are you going to change.
@@ -528,11 +432,6 @@ void loop() {  // Put your main code here, to run repeatedly:
   }
 
   //////////////// End of testing indicators.
-
-
-
-
-    
 
 
 }  // End of loop
